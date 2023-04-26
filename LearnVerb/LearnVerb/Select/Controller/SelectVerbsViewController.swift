@@ -20,6 +20,7 @@ final class SelectVerbsViewController: UITableViewController {
         
         view.backgroundColor = .white
         tableView.register(SelectVerbTableViewCell.self, forCellReuseIdentifier: "SelectVerbsTableViewCell")
+        dataSource.selectedVerbs = dataSource.verbs.map { $0 }
     }
     
     // MARK: - Private methods
