@@ -20,6 +20,33 @@ final class TrainViewController: UIViewController {
     
     private lazy var contentView: UIView = UIView()
     
+    private lazy var scoreTextLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .black
+        label.text = "Score:"
+        
+        return label
+    }()
+    
+    private lazy var scoreCountLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .black
+        label.text = String(score)
+        
+        return label
+    }()
+    
+    private lazy var progressLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .black
+        label.text = "0 of 0"
+        
+        return label
+    }()
+    
     private lazy var infinitiveLabel: UILabel = {
         let label = UILabel()
         label.font = .boldSystemFont(ofSize: 28)
@@ -54,6 +81,7 @@ final class TrainViewController: UIViewController {
         
         textField.borderStyle = .roundedRect
         textField.delegate = self
+        textField.addTarget(self, action: #selector(toggleButton), for: .editingChanged)
 
         return textField
     }()
@@ -63,6 +91,7 @@ final class TrainViewController: UIViewController {
         
         textField.borderStyle = .roundedRect
         textField.delegate = self
+        textField.addTarget(self, action: #selector(toggleButton), for: .editingChanged)
 
         return textField
     }()
@@ -83,6 +112,8 @@ final class TrainViewController: UIViewController {
     // MARK: - Properties
     private let edgeInsets = 30
     private let dataSource = IrregularVerbs.shared.selectedVerbs
+    private var score = 0
+    private var isPreviousAnswerCorrect = true
     private var currentVerb: Verb? {
         guard dataSource.count > count else { return nil }
         return dataSource[count]
@@ -107,6 +138,7 @@ final class TrainViewController: UIViewController {
         hideKeyboardWhenTappedAround()
         
         infinitiveLabel.text = dataSource.first?.infinitive
+        writeProgress()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -120,17 +152,43 @@ final class TrainViewController: UIViewController {
     }
     
     // MARK: - Private Methods
+    private func writeProgress() {
+        progressLabel.text = "\(count) of \(dataSource.count)"
+    }
+    
+    @objc
+    private func toggleButton() {
+        checkButton.backgroundColor = .systemGray5
+        checkButton.setTitle("Check", for: .normal)
+    }
+    
     @objc
     private func checkAction() {
         if checkAnswers() {
             if currentVerb?.infinitive == dataSource.last?.infinitive {
-                navigationController?.popViewController(animated: true)
+                let alert = UIAlertController(title: "Well done!",
+                                              message: "Your score: \(score + 1)",
+                                              preferredStyle: .alert)
+                let action = UIAlertAction(title: "Ok", style: .default)
+                alert.addAction(action)
+                present(alert, animated: true, completion: { () in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.navigationController?.popToRootViewController(animated: true)
+                    }
+                })
             } else {
                 count += 1
+                if isPreviousAnswerCorrect {
+                    score += 1
+                    scoreCountLabel.text = String(score)
+                }
+                isPreviousAnswerCorrect = true
+                writeProgress()
             }
         } else {
             checkButton.backgroundColor = .red
             checkButton.setTitle("Try again", for: .normal)
+            isPreviousAnswerCorrect = false
         }
     }
     
@@ -145,6 +203,9 @@ final class TrainViewController: UIViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
         contentView.addSubviews([
+            scoreTextLabel,
+            scoreCountLabel,
+            progressLabel,
             infinitiveLabel,
             pastSimpleLabel,
             pastSimpleTextField,
@@ -163,6 +224,21 @@ final class TrainViewController: UIViewController {
         
         contentView.snp.makeConstraints { make in
             make.size.edges.equalToSuperview()
+        }
+        
+        scoreCountLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().inset(20)
+            make.trailing.equalToSuperview().inset(20)
+        }
+        
+        scoreTextLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().inset(20)
+            make.trailing.equalTo(scoreCountLabel).inset(10)
+        }
+        
+        progressLabel.snp.makeConstraints { make in
+            make.top.equalTo(scoreCountLabel).inset(20)
+            make.trailing.equalToSuperview().inset(20)
         }
         
         infinitiveLabel.snp.makeConstraints { make in
